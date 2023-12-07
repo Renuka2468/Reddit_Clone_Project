@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile Page</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" th:href="@{/css/profilePage.css}" />
+</head>
+<body>
+<div class="navBar">
+    <div class="bar1">
+      <a th:href="@{/}"> <i class="fa-brands fa-reddit color"></i></a>
+        <a th:href="@{/}"> <p class="text">reddit</p> </a>
+    </div>
+
+    <div class="bar2">
+        <form th:action="@{/search/posts}">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" name="query" placeholder="Search Reddit">
+            <input type="submit" value="Search">
+        </form>
+
+    </div>
+
+</div>
+
+
+<div class="navigation">
+    <a th:href="@{'/user/'+${#authentication.principal.username}+'/posts' }" class="link">POSTS</a>
+    <a th:href="@{'/user/'+${#authentication.principal.username}+'/comments' }" class="link">COMMENT</a>
+    <a th:href="@{'/user/'+${#authentication.principal.username}+'/upVoted' }" class="link">UPVOTED</a>
+    <a th:href="@{'/user/'+${#authentication.principal.username}+'/downVoted' }" class="link">DOWNVOTED</a>
+    <a th:href="@{'/user/'+${#authentication.principal.username}+'/community' }"   class="link">COMMUNITY</a>
+    <a th:href="@{'/user/'+${#authentication.principal.username}+'/bookmark' }"   class="link">BOOKMARK</a>
+</div>
+
+<div class="main ">
+
+        <main class="posts"  th:if="${action != 'comments' and action != 'community' }">
+            <div th:each="post : ${posts}">
+                    <div class="post">
+                        <div class = "vote">
+                            <form  th:action="@{/processPostVote}" method="post">
+                                <input type="hidden" name="postId" th:value="${post.getId()}">
+                                <input type="hidden" name="vote" value="1">
+
+                                <input type="hidden" name="endPoint" th:value=" '/user/' + ${#authentication.principal.username} + '/posts'">
+                                <!-- Styled button with Font Awesome icon -->
+                                <button type="submit" class="icon-button"><i class="fa-solid fa-up-long"></i></button>
+                            </form>
+
+                            <span th:text="${post.getVoteCount()}">  </span>
+
+                            <form  th:action="@{/processPostVote}" method="post">
+                                <input type="hidden" name="postId" th:value="${post.getId()}">
+                                <input type="hidden" name="vote" value="-1">
+                                <input type="hidden" name="endPoint" th:value=" '/user/' + ${#authentication.principal.username} + '/posts'">
+
+                                <!-- Styled button with Font Awesome icon -->
+                                <button type="submit" class="icon-button"><i class="fa-solid fa-down-long"></i></button>
+                            </form>
+                        </div>
+
+                        <div class = "post-container">
+                            <div class="author">
+                                <a th:href="@{'/community/' + ${post.getSubReddit().getName()} }">
+                                    <h3 th:text="'r/' + ${post.getSubReddit().getName()}" style="margin-right: 20px;"></h3>
+                                </a>
+                                posted by:
+                                <h3 th:text=" ${post.getUser().getUsername()}"></h3>
+                            </div>
+                            <div class = "post-content-container">
+                                <a class="homepage-link" th:href="@{'/' + ${post.getSubReddit().getName()}+'/posts/' + ${post.getId()} +'/comments'}">
+                                    <h2 class="post-title" th:text="${post.getTitle()}"></h2>
+                                    <div class="content">
+                                        <p th:text="${post.getDescription()}"></p>
+                                    </div>
+                                    <div class="img-container" th:if="${post.image != null}" >
+                                        <img th:src="@{'/image/'+${post.image}}" alt="reddit" >
+                                    </div>
+                                </a>
+                            </div>
+
+                            <div>
+                                <i class="fa-regular fa-message"></i>
+                            </div>
+                        </div>
+                        <span th:if="${action == 'posts'}">
+                        <form th:action="@{'/posts/editPost/' + ${post.getId()}}">
+                            <button id="edit-button">Edit</button>
+                        </form>
+                        <form th:action="@{'/posts/deletePost/' + ${post.getId()}}" method="POST">
+                            <button id="delete-button">Delete</button>
+                        </form>
+                        </span>
+                    </div>
+
+            </div>
+        </main>
+
+    <div class="posts"   th:if="${action == 'community'}">
+        <div th:each="subReddit : ${communities}">
+            <div class="comments ">
+                <div class = "post-container">
+                    <div class="author comments-date ">
+                        <h3 th:text="${subReddit.name}"></h3>
+
+                    </div>
+                    <div class = "post-content-container">
+                            <div class="content">
+                                <p class="comments-content" th:text="${subReddit.getDescription()}"></p>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="posts"   th:if="${action == 'comments'}">
+        <div th:each="comment : ${comment}">
+            <div class="comments">
+                <div class = "post-container">
+                    <div class="author comments-date ">
+                   <div>Community:<h3 th:text="${comment.getPost().getSubReddit().getName()}"></h3></div>
+                    <div>   PostTitle:<h3  th:text="${comment.getPost().getTitle()}"></h3></div>
+<!--                        <div th:with="formattedDate=${#dates.format(comment.createdAt, 'dd-MM-yyyy')}">-->
+<!--                              <div>CommentDate:<h3 th:text="${formattedDate}"></h3></div>-->
+<!--                        </div>-->
+                    <div> CommentTime: <h3 th:text="${#temporals.format(comment.createdAt, 'dd/MMM/yyy')}"></h3></div>
+                    </div>
+                    <div class = "post-content-container">
+                        <div class="content ">
+                           <p class="comments-content" th:text="${comment.text}"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+    <div class="profile">
+        <div class="cover-pic">
+
+        </div>
+        <div class="profile-pic">
+            <img width="96" height="96" src="https://img.icons8.com/color/96/administrator-male--v1.png" alt="administrator-male--v1"/>
+
+        </div>
+        <h3 class="h3" th:text="${#authentication.principal.username}"></h3>
+        <div>
+            <a th:href="@{/community/createCommunity}"> <button class="communitty-button">Create New Community </button> </a>
+        </div>
+        <div class="karma">
+            <div>
+                <h4> Karma</h4>
+                <p>123</p>
+            </div>
+            <div>
+                <h4> Cake day</h4>
+                <p>18/11/2023</p>
+            </div>
+        </div>
+
+
+        <div >
+            <a th:href="@{/posts/createPost}" > <button class="post-button"> New Post</button></a>
+        </div>
+
+    </div>
+</div>
+
+
+
+</body>
+</html>
